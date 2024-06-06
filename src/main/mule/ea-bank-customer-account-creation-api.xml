@@ -169,7 +169,7 @@ output application/json
 ]]></ee:set-payload>
 			</ee:message>
 		</ee:transform>
-				<logger level="INFO" doc:name="Record already exists in DB" doc:id="8dd504b9-6412-4610-9508-a454697346d3" message="**** Customer account already exists in DB****"/>
+				<logger level="INFO" doc:name="Record already exists in DB" doc:id="8dd504b9-6412-4610-9508-a454697346d3" message="**** Customer account already exists in DB***"/>
 			</when>
 			<otherwise >
 				<db:insert doc:name="Insert" doc:id="1e351f05-08ed-492f-8b77-9f28025ff183" config-ref="Database_Config">
