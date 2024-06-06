@@ -1,0 +1,242 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mule xmlns:email="http://www.mulesoft.org/schema/mule/email" xmlns:db="http://www.mulesoft.org/schema/mule/db" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:apikit="http://www.mulesoft.org/schema/mule/mule-apikit" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd http://www.mulesoft.org/schema/mule/mule-apikit http://www.mulesoft.org/schema/mule/mule-apikit/current/mule-apikit.xsd http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd 
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd
+http://www.mulesoft.org/schema/mule/email http://www.mulesoft.org/schema/mule/email/current/mule-email.xsd">
+    <apikit:config name="ea-bank-customer-account-creation-api-config" api="ea-bank-customer-account-creation-api.raml" outboundHeadersMapName="outboundHeaders" httpStatusVarName="httpStatus" />
+	<db:config name="Database_Config" doc:name="Database Config" doc:id="d136b6dc-c362-4682-95e7-5cd9b3957b07" >
+		<db:my-sql-connection host="${db.host}" port="${db.port}" user="${db.user}" password="${db.password}" database="${db.database}" />
+	</db:config>
+	<http:listener-config name="HTTP_Listener_config" doc:name="HTTP Listener config" doc:id="2d86b229-47f1-4a2b-afc8-e6186080b8cf" >
+		<http:listener-connection host="0.0.0.0" port='${http.port}' />
+	</http:listener-config>
+	<configuration-properties doc:name="Configuration properties" doc:id="8651b6b4-7615-4c0d-97b4-53624a4f9ad5" file="myConfig-dev.yaml" />
+	<email:smtp-config name="Email_SMTP" doc:name="Email SMTP" doc:id="65dddc2f-5c93-473b-95f9-67ea7cd798f3" >
+		<email:smtp-connection host="${email.config.host}" port="${email.config.port}" user="${email.config.user}" password="${email.config.password}" >
+			<email:properties >
+				<email:property key="mail.smtp.starttls.enable" value="true" />
+			</email:properties>
+		</email:smtp-connection>
+	</email:smtp-config>
+	<flow name="ea-bank-customer-account-creation-api-main">
+        <http:listener path="/api/*" config-ref="HTTP_Listener_config">
+            <http:response statusCode="#[vars.httpStatus default 200]">
+                <http:headers><![CDATA[#[vars.outboundHeaders default {}]]]></http:headers>
+            </http:response>
+            <http:error-response statusCode="#[vars.httpStatus default 500]">
+                <http:body><![CDATA[#[payload]]]></http:body>
+                <http:headers><![CDATA[#[vars.outboundHeaders default {}]]]></http:headers>
+            </http:error-response>
+        </http:listener>
+        <apikit:router config-ref="ea-bank-customer-account-creation-api-config" />
+        <error-handler>
+            <on-error-propagate type="APIKIT:BAD_REQUEST">
+                <ee:transform doc:name="Transform Message">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{message: "Bad request"}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus">400</ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+            <on-error-propagate type="APIKIT:NOT_FOUND">
+                <ee:transform doc:name="Transform Message">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{message: "Resource not found"}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus">404</ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+            <on-error-propagate type="APIKIT:METHOD_NOT_ALLOWED">
+                <ee:transform doc:name="Transform Message">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{message: "Method not allowed"}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus">405</ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+            <on-error-propagate type="APIKIT:NOT_ACCEPTABLE">
+                <ee:transform doc:name="Transform Message">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{message: "Not acceptable"}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus">406</ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+            <on-error-propagate type="APIKIT:UNSUPPORTED_MEDIA_TYPE">
+                <ee:transform doc:name="Transform Message">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{message: "Unsupported media type"}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus">415</ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+            <on-error-propagate type="APIKIT:NOT_IMPLEMENTED">
+                <ee:transform doc:name="Transform Message">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{message: "Not Implemented"}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus">501</ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+        </error-handler>
+    </flow>
+    <flow name="ea-bank-customer-account-creation-api-console">
+        <http:listener path="/console/*" config-ref="HTTP_Listener_config">
+            <http:response statusCode="#[vars.httpStatus default 200]">
+                <http:headers><![CDATA[#[vars.outboundHeaders default {}]]]></http:headers>
+            </http:response>
+            <http:error-response statusCode="#[vars.httpStatus default 500]">
+                <http:body><![CDATA[#[payload]]]></http:body>
+                <http:headers><![CDATA[#[vars.outboundHeaders default {}]]]></http:headers>
+            </http:error-response>
+        </http:listener>
+        <apikit:console config-ref="ea-bank-customer-account-creation-api-config" />
+        <error-handler>
+            <on-error-propagate type="APIKIT:NOT_FOUND">
+                <ee:transform doc:name="Transform Message">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{message: "Resource not found"}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus">404</ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+        </error-handler>
+    </flow>
+    <flow name="post:\createAccount:application\json:ea-bank-customer-account-creation-api-config">
+		<logger level="INFO" doc:name="Logger- Begining" doc:id="b024e3c2-6f20-4af5-8be1-d1ff4fb20c91" message='"***** Create Customer Account API begins*********" #[payload]'/>
+		<set-variable value='#[attributes.queryParams.customerName]' doc:name="customerName" doc:id="98a0ce39-2810-4038-a67b-3c7323b44b60" variableName="customerName"/>
+		<set-variable value="#[attributes.queryParams.bank]" doc:name="bank " doc:id="addb88d7-9172-4598-841f-e0ca83c62d37" variableName="bank "/>
+		<set-variable value="#[attributes.queryParams.accaount_type]" doc:name="account_type" doc:id="c33639a1-5e68-48c5-9f51-0e551c30eadc" variableName="account_type"/>
+		<set-variable value="#[attributes.queryParams.branchName]" doc:name="branchName " doc:id="8890a731-3aa4-4589-bf1b-15b058bf4483" variableName="branchName "/>
+		<set-variable value="#[payload.mailId]" doc:name="emailId" doc:id="d64fa120-f26d-42ac-b506-18f08b566f97" variableName="emailId"/>
+		<set-variable value="#[payload.accountNum]" doc:name="accNum" doc:id="82de85e7-435d-4982-82b9-b99ca0ca39ea" variableName="accNum"/>
+		<set-variable value="#[[]]" doc:name="empty List" doc:id="12a40257-2a40-47b2-af72-7b82b1eb935c" variableName="inputPayload"/>
+		<set-variable value="#[%dw 2.0&#10;output application/json&#10;---&#10;&#10;vars.inputPayload &lt;&lt; payload]" doc:name="inputPayload" doc:id="f883d96d-896c-4fe3-8239-5570de22dd57" variableName="inputPayload" />
+		<db:select doc:name="Select" doc:id="d2dda57f-c890-43db-9854-338af4061a74" config-ref="Database_Config">
+			<db:sql ><![CDATA[select custAccNum,bankName from Bank_Transactions where custAccNum =:custAccNum and bankName =:bankName ]]></db:sql>
+			<db:input-parameters ><![CDATA[#[{
+	"custAccNum": payload.accountNum,
+	"bankName": vars.bank
+}]]]></db:input-parameters>
+		</db:select>
+		<choice doc:name="Choice" doc:id="7f09aa4a-dc05-4f9d-8d71-db8772c44448" >
+			<when expression="#[sizeOf(payload) &gt;=1]">
+				<ee:transform doc:name="Transform Message" doc:id="9d3f1555-6fdd-45a1-84c3-d3d27f8b90d3">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	(payload  map {
+"Message": "Account " ++ $.custAccNum ++" already exists " 
+}
+)
+}
+]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+				<logger level="INFO" doc:name="Record already exists in DB" doc:id="8dd504b9-6412-4610-9508-a454697346d3" message="**** Customer account already exists in DB****"/>
+			</when>
+			<otherwise >
+				<db:insert doc:name="Insert" doc:id="1e351f05-08ed-492f-8b77-9f28025ff183" config-ref="Database_Config">
+					<db:sql ><![CDATA[insert into Bank_Transactions (custName,custAccNum,atmPin,bankName,accountType,ifscCode,branchName,transactionTimeStamp,mailId,phoneNumber) 
+
+values
+(:custName,:custAccNum,:atmPin,:bankName,:accountType,:ifscCode,:branchName,:transactionTimeStamp,:mailId,:phoneNumber) 
+]]></db:sql>
+					<db:input-parameters ><![CDATA[#[{
+	(vars.inputPayload map {
+		
+	"custName": vars.customerName,
+	"custAccNum": $.accountNum ,
+	"atmPin": $.atmPin,
+	"bankName": vars.bank ,
+	"accountType": vars.account_type,
+	"ifscCode": $.ifscCode ,
+	"branchName": vars.branchName ,
+	"transactionTimeStamp": now(),
+	"mailId": $.mailId,
+	"phoneNumber": $.contact 	
+	}
+	
+	)
+}]]]></db:input-parameters>
+				</db:insert>
+				<flow-ref doc:name="Flow Reference" doc:id="08c36dba-0f88-4b7a-84dd-3bb1690027d7" name="ea-bank-customer-account-creation-automatic_email_Flow"/>
+				<ee:transform doc:name="Transform Message1" doc:id="35249de9-e6d0-4382-962f-454864349144">
+					<ee:message>
+						<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	(vars.inputPayload map {
+"status": "Account Successfully Created with Account Number " ++ $.accountNum
+}
+)
+	
+
+}
+	
+	
+]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+				<logger level="INFO" doc:name="Account created successfuly" doc:id="228fa2a1-3ee4-4038-bffa-e2dddfc9b8a1" message="***** Account created successfuly with the given inputs ****"/>
+			</otherwise>
+		</choice>
+    </flow>
+	<flow name="ea-bank-customer-account-creation-automatic_email_Flow" doc:id="d4807ed8-e7d3-4834-ab55-608ff8551c72">
+		<logger level="INFO" doc:name="Logger-1" doc:id="2c3779ad-5471-479c-ae6b-c438dd09edb1" message='"**** Before sending email****" #[payload]' />
+		<ee:transform doc:name="Transform Message" doc:id="a8c50621-16a3-4e05-ad73-06ee74c6d0db" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+
+"Congratulations! Your account is created Successfully with Account Number " ++  vars.accNum as String  ++ " with " ++ vars.bank as String ++  " Bank "]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<email:send doc:name="Send" doc:id="5f994196-7409-4200-af32-59432661e341" config-ref="Email_SMTP" fromAddress="${email.config.user}" subject='#["Congratulations! Your account is created Successfully with" ++ vars.bank as String]'>
+			<email:to-addresses>
+				<email:to-address value="#[vars.emailId]" />
+			</email:to-addresses>
+			<email:body contentType="text/plain">
+			</email:body>
+		</email:send>
+		<logger level="INFO" doc:name="Logger-2" doc:id="183c8ac0-2b20-418d-988d-5156e706807b" message="*** email sent successfully ***" />
+	</flow>
+</mule>

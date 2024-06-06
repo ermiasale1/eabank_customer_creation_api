@@ -1,0 +1,15 @@
+http:
+  port: "8081"
+db: 
+  host: "localhost"
+  port: "3306"
+  user: "root"
+  password: "root"
+  database: "eabank_customer"
+  
+email:
+  config:
+    host: "smtp.gmail.com"
+    port: "587"
+    user: "ermale338@gmail.com"
+    password: "uxhffkyqblfkotkx"
