@@ -215,7 +215,7 @@ output application/json
 ]]></ee:set-payload>
 					</ee:message>
 				</ee:transform>
-				<logger level="INFO" doc:name="Account created successfuly" doc:id="228fa2a1-3ee4-4038-bffa-e2dddfc9b8a1" message="***** Account created successfuly with the given inputs ****"/>
+				<logger level="INFO" doc:name="Account created successfuly" doc:id="228fa2a1-3ee4-4038-bffa-e2dddfc9b8a1" message="***** Account created successfuly with the given inputs **"/>
 			</otherwise>
 		</choice>
     </flow>
